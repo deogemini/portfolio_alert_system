@@ -323,6 +323,7 @@
         }
     }
     async function checkAlerts() {
+        await axios.post('/api/market/snapshot');
         const res = await axios.post('/api/alerts/check');
         messages.value.push('Alerts '+res.data.notified.length);
         await fetchLots();
