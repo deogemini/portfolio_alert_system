@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MarketPrice;
 use App\Models\Stock;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
 class MarketController extends Controller
@@ -46,11 +47,30 @@ class MarketController extends Controller
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            ])->get('https://vertex.co.tz/');
+            ])->timeout(10)->get('https://vertex.co.tz/');
             $html = $response->body();
             $symbols = $this->parseVertexEquities($html);
         } catch (\Throwable $e) {
+            Log::warning('Market snapshot vertex fetch failed', [
+                'error' => $e->getMessage(),
+            ]);
             $symbols = [];
+        }
+
+        // Fallback to DSE overview if Vertex did not return anything
+        if (!count($symbols)) {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                ])->timeout(10)->get('https://dse.co.tz/market/data/overview');
+                $html = $response->body();
+                $symbols = $this->parseDseEquities($html);
+            } catch (\Throwable $e) {
+                Log::error('Market snapshot DSE fetch failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                $symbols = [];
+            }
         }
 
         $now = Carbon::now('Africa/Dar_es_Salaam');
@@ -58,14 +78,14 @@ class MarketController extends Controller
         foreach ($symbols as $row) {
             $symbol = strtoupper($row['symbol']);
             $price = (float) $row['price'];
-            $changePct = (float) $row['change_pct'];
+            $changePct = isset($row['change_pct']) ? (float) $row['change_pct'] : 0.0;
 
             // Calculate change value from percentage
             // price = prev_price * (1 + pct/100)
             // prev_price = price / (1 + pct/100)
             // change = price - prev_price
-            $change = 0;
-            if ($price > 0) {
+            $change = 0.0;
+            if ($price > 0 && $changePct !== 0.0) {
                  $prevPrice = $price / (1 + ($changePct / 100));
                  $change = $price - $prevPrice;
             }
@@ -144,9 +164,47 @@ class MarketController extends Controller
         return [];
     }
 
-    // Deprecated dse parser
-    private function parseEquities(string $html): array
+    private function parseDseEquities(string $html): array
     {
-        return [];
+        $doc = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $doc->loadHTML($html);
+        libxml_clear_errors();
+        $xpath = new \DOMXPath($doc);
+        $rows = $xpath->query('//table//tr');
+        $out = [];
+        foreach ($rows as $tr) {
+            $cells = [];
+            foreach ($xpath->query('.//td', $tr) as $td) {
+                $cells[] = trim(preg_replace('/\s+/', ' ', $td->textContent));
+            }
+            if (count($cells) < 2) {
+                continue;
+            }
+            $symbol = strtoupper($cells[0]);
+            if (!preg_match('/^[A-Z0-9\.\-]{2,10}$/', $symbol)) {
+                continue;
+            }
+            $priceCell = null;
+            foreach ($cells as $c) {
+                if (preg_match('/^\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^\d+(?:\.\d+)?$/', $c)) {
+                    $priceCell = $c;
+                    break;
+                }
+            }
+            if ($priceCell === null) {
+                continue;
+            }
+            $price = (float) str_replace(',', '', $priceCell);
+            if ($price <= 0) {
+                continue;
+            }
+            $out[] = [
+                'symbol' => $symbol,
+                'price' => $price,
+                'change_pct' => 0.0,
+            ];
+        }
+        return $out;
     }
 }
