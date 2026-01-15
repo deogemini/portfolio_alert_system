@@ -5,65 +5,74 @@
             :tzTime="tzTime"
             :marketOpen="marketOpen"
             @logout="logout"
-            @login="showAuth='login'"
-            @register="showAuth='register'"
+            @login="showAuth='login'; currentPage='home'"
+            @register="showAuth='register'; currentPage='home'"
+            @home="currentPage='home'; showAuth=null"
+            @about="currentPage='about'; showAuth=null"
         />
         <main class="p-6 space-y-10">
-            <MarketOverview :equities="equities" @refresh="refreshMarket" />
+            <template v-if="currentPage === 'home'">
+                <MarketOverview :equities="equities" @refresh="refreshMarket" />
 
-            <Hero
-                v-if="!user && !showAuth"
-                @register="showAuth='register'"
-                @login="showAuth='login'"
-            />
+                <Hero
+                    v-if="!user && !showAuth"
+                    @register="showAuth='register'"
+                    @login="showAuth='login'"
+                />
 
-            <AuthForms
-                v-if="!user && showAuth"
-                :mode="showAuth"
-                :registerErrors="registerErrors"
-                :registerMessage="registerMessage"
-                :loginMessage="loginMessage"
-                @register="registerWith"
-                @login="loginWith"
-                @close="showAuth=null"
-                @switch="(m) => showAuth=m"
-            />
+                <AuthForms
+                    v-if="!user && showAuth"
+                    :mode="showAuth"
+                    :registerErrors="registerErrors"
+                    :registerMessage="registerMessage"
+                    :loginMessage="loginMessage"
+                    @register="registerWith"
+                    @login="loginWith"
+                    @close="showAuth=null"
+                    @switch="(m) => showAuth=m"
+                />
 
-            <section v-else-if="user" class="space-y-8">
-                <PortfolioStats :stats="stats" />
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="space-y-3">
-                        <h2 class="text-xl font-medium">Add Stock</h2>
-                        <div class="flex gap-2">
-                            <input v-model="stockForm.symbol" placeholder="Symbol e.g. CRDB" class="border px-2 py-2">
-                            <input v-model="stockForm.name" placeholder="Name (optional)" class="border px-2 py-2">
-                            <button @click="addStock" class="bg-black text-white px-3 py-2">Save</button>
+                <section v-else-if="user" class="space-y-8">
+                    <PortfolioStats :stats="stats" />
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <h2 class="text-xl font-medium">Add Stock</h2>
+                            <div class="flex gap-2">
+                                <input v-model="stockForm.symbol" placeholder="Symbol e.g. CRDB" class="border px-2 py-2">
+                                <input v-model="stockForm.name" placeholder="Name (optional)" class="border px-2 py-2">
+                                <button @click="addStock" class="bg-black text-white px-3 py-2">Save</button>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <h2 class="text-xl font-medium">Add Lot</h2>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                <input v-model="lotForm.symbol" placeholder="Symbol" class="border px-2 py-2">
+                                <input v-model.number="lotForm.quantity" type="number" placeholder="Quantity" class="border px-2 py-2">
+                                <input v-model.number="lotForm.buy_price" type="number" placeholder="Buy Price" class="border px-2 py-2">
+                                <input v-model.number="lotForm.take_profit_pct" type="number" placeholder="Take Profit %" class="border px-2 py-2">
+                                <input v-model.number="lotForm.buy_more_pct" type="number" placeholder="Buy More %" class="border px-2 py-2">
+                                <button @click="addLot" class="bg-black text-white px-3 py-2">Save</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="space-y-3">
-                        <h2 class="text-xl font-medium">Add Lot</h2>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                            <input v-model="lotForm.symbol" placeholder="Symbol" class="border px-2 py-2">
-                            <input v-model.number="lotForm.quantity" type="number" placeholder="Quantity" class="border px-2 py-2">
-                            <input v-model.number="lotForm.buy_price" type="number" placeholder="Buy Price" class="border px-2 py-2">
-                            <input v-model.number="lotForm.take_profit_pct" type="number" placeholder="Take Profit %" class="border px-2 py-2">
-                            <input v-model.number="lotForm.buy_more_pct" type="number" placeholder="Buy More %" class="border px-2 py-2">
-                            <button @click="addLot" class="bg-black text-white px-3 py-2">Save</button>
-                        </div>
-                    </div>
-                </div>
-                <LotsTable :lots="lots" @update-price="updatePrice" @check-alerts="checkAlerts" />
-            </section>
-            <section v-if="messages.length" class="space-y-1">
-                <div v-for="(m,i) in messages" :key="i" class="text-sm">{{ m }}</div>
-            </section>
-            <ContactSection
-                :user="user"
-                :errors="contactErrors"
-                :message="contactMessage"
-                @submit="sendContact"
-                @registerClick="showAuth='register'"
-                @loginClick="showAuth='login'"
+                    <LotsTable :lots="lots" @update-price="updatePrice" @check-alerts="checkAlerts" />
+                </section>
+                <section v-if="messages.length" class="space-y-1">
+                    <div v-for="(m,i) in messages" :key="i" class="text-sm">{{ m }}</div>
+                </section>
+                <ContactSection
+                    :user="user"
+                    :errors="contactErrors"
+                    :message="contactMessage"
+                    @submit="sendContact"
+                    @registerClick="showAuth='register'"
+                    @loginClick="showAuth='login'"
+                />
+            </template>
+            <AboutSection
+                v-else-if="currentPage === 'about'"
+                @registerClick="showAuth='register'; currentPage='home'"
+                @loginClick="showAuth='login'; currentPage='home'"
             />
         </main>
         <footer class="px-6 py-4 border-t text-center text-sm">
@@ -82,8 +91,10 @@
     import PortfolioStats from './ui/PortfolioStats.vue';
     import LotsTable from './ui/LotsTable.vue';
     import ContactSection from './ui/ContactSection.vue';
+    import AboutSection from './ui/AboutSection.vue';
 
     const showAuth = ref(null);
+    const currentPage = ref('home');
     const registerForm = reactive({ name: '', email: '', password: '', password_confirmation: '' });
     const loginForm = reactive({ email: '', password: '' });
     const stockForm = reactive({ symbol: '', name: '' });
@@ -224,6 +235,7 @@
         user.value = null;
         lots.value = [];
         messages.value.push('Logged out');
+        currentPage.value = 'home';
     }
 
     async function addStock() {

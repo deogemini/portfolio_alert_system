@@ -1,7 +1,11 @@
 <template>
     <header class="px-6 py-4 border-b flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="font-semibold text-lg">DSE Portfolio Alert System</div>
+            <div @click="$emit('home')" class="font-semibold text-lg cursor-pointer hover:opacity-80">DSE Portfolio Alert System</div>
+            <nav class="hidden md:flex items-center gap-4 ml-6 text-sm font-medium text-gray-600">
+                <button @click="$emit('home')" class="hover:text-black transition">Home</button>
+                <button @click="$emit('about')" class="hover:text-black transition">About</button>
+            </nav>
         </div>
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 text-sm">
