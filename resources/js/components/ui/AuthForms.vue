@@ -19,11 +19,11 @@
                 </div>
                 <button @click="$emit('register', { ...registerForm })" class="bg-black text-white px-3 py-2 rounded font-medium">Register</button>
             </div>
-            <div v-if="registerErrors.length" class="text-sm text-red-600 bg-red-50 p-2 rounded">
+            <div v-if="registerErrors.length" class="text-base text-red-600 bg-red-50 p-2 rounded">
                 <div v-for="(err,i) in registerErrors" :key="i">{{ err }}</div>
             </div>
-            <div v-if="registerMessage" class="text-sm text-center">{{ registerMessage }}</div>
-            <div class="text-center text-sm">
+            <div v-if="registerMessage" class="text-base text-center">{{ registerMessage }}</div>
+            <div class="text-center text-base">
                 Already have an account? <button @click="$emit('switch', 'login')" class="underline font-medium">Login</button>
             </div>
         </div>
@@ -38,8 +38,8 @@
                 </div>
                 <button @click="$emit('login', { ...loginForm })" class="bg-black text-white px-3 py-2 rounded font-medium">Login</button>
             </div>
-            <div v-if="loginMessage" class="text-sm text-center text-red-600 bg-red-50 p-2 rounded">{{ loginMessage }}</div>
-            <div class="text-center text-sm">
+            <div v-if="loginMessage" class="text-base text-center text-red-600 bg-red-50 p-2 rounded">{{ loginMessage }}</div>
+            <div class="text-center text-base">
                 Don't have an account? <button @click="$emit('switch', 'register')" class="underline font-medium">Register</button>
             </div>
         </div>

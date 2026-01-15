@@ -7,7 +7,7 @@
             </div>
         </div>
         <div class="overflow-x-auto border rounded">
-            <table class="min-w-full text-sm">
+            <table class="min-w-full text-base">
                 <thead>
                     <tr class="border-b">
                         <th class="text-left p-2">Symbol</th>

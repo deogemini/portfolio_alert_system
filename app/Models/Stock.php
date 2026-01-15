@@ -11,6 +11,8 @@ class Stock extends Model
         'symbol',
         'name',
         'last_price',
+        'change',
+        'change_pct',
         'last_price_at',
     ];
 

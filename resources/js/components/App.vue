@@ -78,7 +78,20 @@
                 />
             </div>
         </main>
-        <footer class="px-6 py-4 border-t text-center text-sm">
+        <div class="bg-blue-900 text-white text-sm md:text-base px-6 py-2 flex flex-col md:flex-row items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="font-medium">Phone:</span>
+                <span>+255 765 597 134</span>
+                <span class="hidden md:inline">|</span>
+                <span>+255 676 994 832</span>
+                <span class="hidden md:inline">|</span>
+                <span class="font-medium">Email:</span>
+                <a href="mailto:info@eportsolutions.co.tz" class="underline-offset-2 hover:underline">
+                    info@eportsolutions.co.tz
+                </a>
+            </div>
+        </div>
+        <footer class="px-6 py-4 border-t text-center text-base">
             <span>© {{ currentYear }} eportsolutions.co.tz — All rights under company</span>
         </footer>
     </div>

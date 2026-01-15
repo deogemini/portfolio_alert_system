@@ -1,8 +1,8 @@
 <template>
     <section class="grid md:grid-cols-2 gap-8 items-center px-6 py-10">
         <div class="space-y-4">
-            <h1 class="text-3xl font-semibold">Track DSE holdings and receive smart alerts</h1>
-            <p class="text-sm">Enter purchase lots for each DSE stock, set take-profit and buy-more thresholds, and get email alerts based on market price movements per lot.</p>
+            <h1 class="text-4xl font-semibold">Track DSE holdings and receive smart alerts</h1>
+            <p class="text-base">Enter purchase lots for each DSE stock, set take-profit and buy-more thresholds, and get email alerts based on market price movements per lot.</p>
             <div class="flex gap-3">
                 <button @click="$emit('register')" class="bg-black text-white px-4 py-2">Get Started</button>
                 <button @click="$emit('login')" class="border px-4 py-2">Login</button>

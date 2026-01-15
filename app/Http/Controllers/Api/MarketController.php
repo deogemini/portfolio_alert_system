@@ -46,9 +46,9 @@ class MarketController extends Controller
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            ])->get('https://dse.co.tz/market/data/overview');
+            ])->get('https://vertex.co.tz/');
             $html = $response->body();
-            $symbols = $this->parseEquities($html);
+            $symbols = $this->parseVertexEquities($html);
         } catch (\Throwable $e) {
             $symbols = [];
         }
@@ -58,8 +58,26 @@ class MarketController extends Controller
         foreach ($symbols as $row) {
             $symbol = strtoupper($row['symbol']);
             $price = (float) $row['price'];
+            $changePct = (float) $row['change_pct'];
+
+            // Calculate change value from percentage
+            // price = prev_price * (1 + pct/100)
+            // prev_price = price / (1 + pct/100)
+            // change = price - prev_price
+            $change = 0;
+            if ($price > 0) {
+                 $prevPrice = $price / (1 + ($changePct / 100));
+                 $change = $price - $prevPrice;
+            }
+
             $stock = Stock::firstOrCreate(['symbol' => $symbol]);
-            $stock->update(['last_price' => $price, 'last_price_at' => $now]);
+            $stock->update([
+                'last_price' => $price,
+                'change' => $change,
+                'change_pct' => $changePct,
+                'last_price_at' => $now
+            ]);
+
             MarketPrice::create([
                 'stock_id' => $stock->id,
                 'price' => $price,
@@ -73,62 +91,62 @@ class MarketController extends Controller
 
     public function equities()
     {
-        $stocks = Stock::with(['lots'])->orderBy('symbol')->get();
+        $stocks = Stock::orderBy('symbol')->get();
         $data = [];
         foreach ($stocks as $stock) {
-            $latest = MarketPrice::where('stock_id', $stock->id)->orderByDesc('fetched_at')->first();
-            $prev = MarketPrice::where('stock_id', $stock->id)->orderByDesc('fetched_at')->skip(1)->first();
-            $price = $latest ? (float) $latest->price : ($stock->last_price ? (float) $stock->last_price : null);
-            $prevPrice = $prev ? (float) $prev->price : null;
-            $change = ($price !== null && $prevPrice !== null) ? $price - $prevPrice : null;
-            $changePct = ($change !== null && $prevPrice) ? ($change / $prevPrice) * 100 : null;
             $data[] = [
                 'symbol' => $stock->symbol,
-                'price' => $price,
-                'change' => $change,
-                'change_pct' => $changePct,
+                'price' => (float) $stock->last_price,
+                'change' => (float) $stock->change,
+                'change_pct' => (float) $stock->change_pct,
             ];
         }
         return ['equities' => $data];
     }
 
+    private function parseVertexEquities(string $html): array
+    {
+        // Extract the ticker items JSON
+        if (preg_match('/"items":(\[\{.*?\}\])/', $html, $matches)) {
+            $items = json_decode($matches[1], true);
+            if (isset($items[0]['html'])) {
+                $tickerHtml = $items[0]['html'];
+
+                // Parse the HTML content for stocks
+                // Format: SYMBOL: PRICE <span...>... CHANGE%</span>
+                // Example: AFRIPRISE: 475 <span class="down">\u25bc -2.06%</span>
+
+                $out = [];
+                // Regex to capture Symbol, Price, and Change%
+                // Handles unescaped or escaped unicode characters in span
+                if (preg_match_all('/([A-Z0-9]+):\s+([0-9,]+)\s+<span[^>]*>.*?([+\-]?\d+\.\d+)%<\/span>/', $tickerHtml, $m, PREG_SET_ORDER)) {
+                    foreach ($m as $match) {
+                        $symbol = $match[1];
+                        $price = (float) str_replace(',', '', $match[2]);
+                        $changePct = (float) $match[3];
+
+                        $out[] = [
+                            'symbol' => $symbol,
+                            'price' => $price,
+                            'change_pct' => $changePct
+                        ];
+                    }
+                }
+
+                // Also handle neutral (0.00%) which might have different format or be consistent
+                // The regex above expects a number followed by % inside span.
+                // Example: JSL: 5 <span class="neutral">... 0.00%</span>
+                // It should match.
+
+                return $out;
+            }
+        }
+        return [];
+    }
+
+    // Deprecated dse parser
     private function parseEquities(string $html): array
     {
-        $doc = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        $doc->loadHTML($html);
-        libxml_clear_errors();
-        $xpath = new \DOMXPath($doc);
-        $rows = $xpath->query('//table//tr');
-        $out = [];
-        foreach ($rows as $tr) {
-            $cells = [];
-            foreach ($xpath->query('.//td', $tr) as $td) {
-                $cells[] = trim(preg_replace('/\s+/', ' ', $td->textContent));
-            }
-            if (count($cells) < 2) {
-                continue;
-            }
-            $symbol = strtoupper($cells[0]);
-            if (!preg_match('/^[A-Z0-9\.\-]{2,10}$/', $symbol)) {
-                continue;
-            }
-            $priceCell = null;
-            foreach ($cells as $c) {
-                if (preg_match('/^\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^\d+(?:\.\d+)?$/', $c)) {
-                    $priceCell = $c;
-                    break;
-                }
-            }
-            if ($priceCell === null) {
-                continue;
-            }
-            $price = (float) str_replace(',', '', $priceCell);
-            if ($price <= 0) {
-                continue;
-            }
-            $out[] = ['symbol' => $symbol, 'price' => $price];
-        }
-        return $out;
+        return [];
     }
 }
