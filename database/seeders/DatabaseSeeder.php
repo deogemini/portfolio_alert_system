@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -20,7 +19,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@eportsolutions.co.tz'],
             [
                 'name' => 'System Admin',
-                'password' => Hash::make('Admin123!'),
+                'password' => 'Admin123!',
                 'email_verified_at' => now(),
             ]
         );
