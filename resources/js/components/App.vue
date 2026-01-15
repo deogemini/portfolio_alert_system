@@ -35,6 +35,18 @@
 
                 <section v-else-if="user" class="space-y-8">
                     <PortfolioStats :stats="stats" />
+                    <div class="max-w-4xl px-2">
+                        <div class="border rounded-md p-4 bg-white space-y-2">
+                            <h2 class="text-xl font-semibold">How to use this page</h2>
+                            <ol class="list-decimal list-inside space-y-1 text-base">
+                                <li>First add each stock you follow under <span class="font-semibold">Add Stock</span> using its DSE symbol, for example <span class="font-mono">CRDB</span> or <span class="font-mono">NMB</span>.</li>
+                                <li>For every purchase you make, create a lot under <span class="font-semibold">Add Lot</span> with the symbol, quantity you bought and your buy price.</li>
+                                <li>Set <span class="font-semibold">Take Profit %</span> to the gain where you want to sell (for example 40 means sell when price is 40% above buy price).</li>
+                                <li>Optionally set <span class="font-semibold">Buy More %</span> to the drop where you want to buy more (for example 20 means buy more if price falls 20% below buy price).</li>
+                                <li>Use the <span class="font-semibold">Check Alerts</span> button to see which lots are above your take‑profit or below your buy‑more level based on the latest market price.</li>
+                            </ol>
+                        </div>
+                    </div>
                     <div class="grid md:grid-cols-2 gap-6">
                         <div class="space-y-3">
                             <h2 class="text-xl font-medium">Add Stock</h2>
