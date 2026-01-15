@@ -5,6 +5,7 @@
             <nav class="hidden md:flex items-center gap-4 ml-6 text-sm font-medium text-gray-600">
                 <button @click="$emit('home')" class="hover:text-black transition">Home</button>
                 <button @click="$emit('about')" class="hover:text-black transition">About</button>
+                <button @click="$emit('contact')" class="hover:text-black transition">Contact</button>
             </nav>
         </div>
         <div class="flex items-center gap-4">

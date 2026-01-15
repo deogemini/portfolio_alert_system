@@ -9,6 +9,7 @@
             @register="showAuth='register'; currentPage='home'"
             @home="currentPage='home'; showAuth=null"
             @about="currentPage='about'; showAuth=null"
+            @contact="currentPage='contact'; showAuth=null"
         />
         <main class="p-6 space-y-10">
             <template v-if="currentPage === 'home'">
@@ -74,6 +75,16 @@
                 @registerClick="showAuth='register'; currentPage='home'"
                 @loginClick="showAuth='login'; currentPage='home'"
             />
+            <div v-else-if="currentPage === 'contact'" class="max-w-4xl mx-auto py-12">
+                 <ContactSection
+                    :user="user"
+                    :errors="contactErrors"
+                    :message="contactMessage"
+                    @submit="sendContact"
+                    @registerClick="showAuth='register'; currentPage='home'"
+                    @loginClick="showAuth='login'; currentPage='home'"
+                />
+            </div>
         </main>
         <footer class="px-6 py-4 border-t text-center text-sm">
             <span>© {{ currentYear }} eportsolutions.co.tz — All rights under company</span>
