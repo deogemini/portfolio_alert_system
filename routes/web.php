@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\LotController;
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MarketController;
 
 Route::get('/', function () {
     return view('app');
@@ -24,4 +25,8 @@ Route::prefix('api')->group(function () {
     Route::post('lots', [LotController::class, 'store'])->middleware('auth');
 
     Route::post('alerts/check', [AlertController::class, 'check'])->middleware('auth');
+
+    Route::get('market/status', [MarketController::class, 'status']);
+    Route::post('market/snapshot', [MarketController::class, 'snapshot']);
+    Route::get('market/equities', [MarketController::class, 'equities']);
 });

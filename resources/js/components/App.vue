@@ -2,7 +2,13 @@
     <div class="min-h-screen">
         <header class="px-6 py-4 border-b flex items-center justify-between">
             <div class="font-semibold text-lg">DSE Portfolio Alert System</div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-sm">
+                    <span :class="marketOpen ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-2 py-1 rounded">
+                        {{ marketOpen ? 'Market Open' : 'Market Closed' }}
+                    </span>
+                    <span>{{ tzTime }}</span>
+                </div>
                 <template v-if="user">
                     <span class="text-sm">{{ user.name }} ({{ user.email }})</span>
                     <button @click="logout" class="border px-3 py-1">Logout</button>
@@ -15,6 +21,50 @@
         </header>
 
         <main class="p-6 space-y-10">
+            <section class="space-y-8">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-medium">Market Overview</h2>
+                        <div class="flex gap-2">
+                            <button @click="refreshMarket" class="border px-3 py-2">Refresh Market Data</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto border rounded">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left p-2">Symbol</th>
+                                    <th class="text-right p-2">Price</th>
+                                    <th class="text-right p-2">Change</th>
+                                    <th class="text-right p-2">Change %</th>
+                                    <th class="text-left p-2">Graph</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="eq in equities" :key="eq.symbol" class="border-t">
+                                    <td class="p-2">{{ eq.symbol }}</td>
+                                    <td class="p-2 text-right">{{ eq.price !== null ? format(eq.price) : '-' }}</td>
+                                    <td class="p-2 text-right" :class="(eq.change ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'">
+                                        {{ eq.change !== null ? format(eq.change) : '-' }}
+                                    </td>
+                                    <td class="p-2 text-right" :class="(eq.change_pct ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'">
+                                        {{ eq.change_pct !== null ? eq.change_pct.toFixed(2)+'%' : '-' }}
+                                    </td>
+                                    <td class="p-2">
+                                        <div class="w-64 h-3 bg-gray-200 relative rounded">
+                                            <div v-if="eq.change_pct !== null"
+                                                 :style="{ width: Math.min(100, Math.abs(eq.change_pct)) + '%'}"
+                                                 :class="(eq.change_pct >= 0) ? 'bg-green-500' : 'bg-red-500'"
+                                                 class="h-3 rounded">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
             <section v-if="!user" class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="space-y-4">
                     <h1 class="text-3xl font-semibold">Track DSE holdings and receive smart alerts</h1>
@@ -30,18 +80,32 @@
                         <div class="grid grid-cols-1 gap-2">
                             <input v-model="registerForm.name" placeholder="Name" class="border px-2 py-2">
                             <input v-model="registerForm.email" type="email" placeholder="Email" class="border px-2 py-2">
-                            <input v-model="registerForm.password" type="password" placeholder="Password" class="border px-2 py-2">
-                            <input v-model="registerForm.password_confirmation" type="password" placeholder="Confirm Password" class="border px-2 py-2">
+                            <div class="relative">
+                                <input :type="showRegisterPassword?'text':'password'" v-model="registerForm.password" placeholder="Password" class="border px-2 py-2 w-full pr-10">
+                                <button type="button" @click="showRegisterPassword=!showRegisterPassword" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm">👁</button>
+                            </div>
+                            <div class="relative">
+                                <input :type="showRegisterPasswordConfirm?'text':'password'" v-model="registerForm.password_confirmation" placeholder="Confirm Password" class="border px-2 py-2 w-full pr-10">
+                                <button type="button" @click="showRegisterPasswordConfirm=!showRegisterPasswordConfirm" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm">👁</button>
+                            </div>
                             <button @click="register" class="bg-black text-white px-3 py-2">Register</button>
                         </div>
+                        <div v-if="registerErrors.length" class="text-sm text-red-700">
+                            <div v-for="(err,i) in registerErrors" :key="i">{{ err }}</div>
+                        </div>
+                        <div v-if="registerMessage" class="text-sm">{{ registerMessage }}</div>
                     </div>
                     <div v-else class="space-y-3">
                         <h2 class="text-xl font-medium">Login</h2>
                         <div class="grid grid-cols-1 gap-2">
                             <input v-model="loginForm.email" type="email" placeholder="Email" class="border px-2 py-2">
-                            <input v-model="loginForm.password" type="password" placeholder="Password" class="border px-2 py-2">
+                            <div class="relative">
+                                <input :type="showLoginPassword?'text':'password'" v-model="loginForm.password" placeholder="Password" class="border px-2 py-2 w-full pr-10">
+                                <button type="button" @click="showLoginPassword=!showLoginPassword" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm">👁</button>
+                            </div>
                             <button @click="login" class="bg-black text-white px-3 py-2">Login</button>
                         </div>
+                        <div v-if="loginMessage" class="text-sm">{{ loginMessage }}</div>
                     </div>
                 </div>
             </section>
@@ -139,6 +203,9 @@
                 <div v-for="(m,i) in messages" :key="i" class="text-sm">{{ m }}</div>
             </section>
         </main>
+        <footer class="px-6 py-4 border-t text-center text-sm">
+            <span>© {{ currentYear }} eportsolutions.co.tz — All rights under company</span>
+        </footer>
     </div>
     </template>
 
@@ -148,13 +215,38 @@
 
     const showAuth = ref('login');
     const registerForm = reactive({ name: '', email: '', password: '', password_confirmation: '' });
+    const showRegisterPassword = ref(false);
+    const showRegisterPasswordConfirm = ref(false);
     const loginForm = reactive({ email: '', password: '' });
+    const showLoginPassword = ref(false);
     const stockForm = reactive({ symbol: '', name: '' });
     const lotForm = reactive({ symbol: '', quantity: null, buy_price: null, take_profit_pct: 40, buy_more_pct: null });
     const priceForm = reactive({ symbol: '', price: null });
     const lots = ref([]);
+    const equities = ref([]);
     const messages = ref([]);
     const user = ref(null);
+    const registerErrors = ref([]);
+    const registerMessage = ref('');
+    const loginMessage = ref('');
+    const currentYear = new Date().getFullYear();
+    const tzTime = ref('');
+    const marketOpen = ref(false);
+
+    async function updateMarketStatus() {
+        try {
+            const res = await axios.get('/api/market/status');
+            tzTime.value = `${res.data.time_eat} EAT`;
+            marketOpen.value = !!res.data.open;
+        } catch {
+            // fallback to local clock if endpoint fails
+            const d = new Date();
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            tzTime.value = `${hh}:${mm}:${ss} EAT`;
+        }
+    }
 
     const stats = computed(() => {
         const totalQty = lots.value.reduce((a,b)=>a + Number(b.quantity||0), 0);
@@ -179,10 +271,25 @@
         try {
             const res = await axios.post('/api/register', registerForm);
             user.value = res.data.user;
-            messages.value.push('Registered and logged in');
+            registerErrors.value = [];
+            registerMessage.value = 'Registered and logged in';
             await fetchLots();
-        } catch {
-            messages.value.push('Register failed');
+        } catch (e) {
+            registerErrors.value = [];
+            registerMessage.value = '';
+            if (e?.response?.status === 419) {
+                registerMessage.value = 'Session expired or CSRF mismatch. Please refresh the page.';
+            } else if (e?.response?.data?.errors) {
+                const errs = e.response.data.errors;
+                Object.keys(errs).forEach(k => {
+                    errs[k].forEach(msg => registerErrors.value.push(msg));
+                });
+                if (!registerErrors.value.length) registerMessage.value = 'Register failed';
+            } else if (e?.response?.data?.message) {
+                registerMessage.value = e.response.data.message;
+            } else {
+                registerMessage.value = 'Register failed';
+            }
         }
     }
 
@@ -190,10 +297,14 @@
         try {
             const res = await axios.post('/api/login', loginForm);
             user.value = res.data.user;
-            messages.value.push('Logged in');
+            loginMessage.value = 'Logged in';
             await fetchLots();
-        } catch {
-            messages.value.push('Login failed');
+        } catch (e) {
+            if (e?.response?.data?.message) {
+                loginMessage.value = e.response.data.message;
+            } else {
+                loginMessage.value = 'Login failed';
+            }
         }
     }
 
@@ -225,6 +336,15 @@
         lots.value = res.data;
     }
 
+    async function fetchEquities() {
+        const res = await axios.get('/api/market/equities');
+        equities.value = res.data.equities || [];
+    }
+
+    async function refreshMarket() {
+        await axios.post('/api/market/snapshot');
+        await fetchEquities();
+    }
     async function checkAlerts() {
         const res = await axios.post('/api/alerts/check');
         messages.value.push('Alerts '+res.data.notified.length);
@@ -241,5 +361,10 @@
         }
     }
 
-    onMounted(fetchMe);
+    onMounted(() => {
+        fetchMe();
+        updateMarketStatus();
+        setInterval(updateMarketStatus, 30000);
+        fetchEquities();
+    });
     </script>
