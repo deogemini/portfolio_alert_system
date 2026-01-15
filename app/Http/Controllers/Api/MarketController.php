@@ -47,17 +47,35 @@ class MarketController extends Controller
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            ])->timeout(10)->get('https://dse.co.tz/market/data/overview');
-            $html = $response->body();
-            $symbols = $this->parseDseEquities($html);
+                'Accept' => 'application/json',
+            ])->timeout(10)->get('https://api.dse.co.tz/api/market-data', [
+                'isBond' => 'false',
+            ]);
+            if ($response->successful()) {
+                $symbols = $this->parseDseApiEquities($response->json());
+            }
         } catch (\Throwable $e) {
-            Log::warning('Market snapshot DSE fetch failed', [
+            Log::warning('Market snapshot DSE API fetch failed', [
                 'error' => $e->getMessage(),
             ]);
             $symbols = [];
         }
 
-        // Fallback to Vertex ticker if DSE did not return anything
+        if (!count($symbols)) {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                ])->timeout(10)->get('https://dse.co.tz/market/data/overview');
+                $html = $response->body();
+                $symbols = $this->parseDseEquities($html);
+            } catch (\Throwable $e) {
+                Log::warning('Market snapshot DSE fetch failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                $symbols = [];
+            }
+        }
+
         if (!count($symbols)) {
             try {
                 $response = Http::withHeaders([
@@ -80,14 +98,10 @@ class MarketController extends Controller
             $price = (float) $row['price'];
             $changePct = isset($row['change_pct']) ? (float) $row['change_pct'] : 0.0;
 
-            // Calculate change value from percentage
-            // price = prev_price * (1 + pct/100)
-            // prev_price = price / (1 + pct/100)
-            // change = price - prev_price
-            $change = 0.0;
-            if ($price > 0 && $changePct !== 0.0) {
-                 $prevPrice = $price / (1 + ($changePct / 100));
-                 $change = $price - $prevPrice;
+            $change = array_key_exists('change', $row) ? (float) $row['change'] : 0.0;
+            if ($change === 0.0 && $price > 0 && $changePct !== 0.0) {
+                $prevPrice = $price / (1 + ($changePct / 100));
+                $change = $price - $prevPrice;
             }
 
             $stock = Stock::firstOrCreate(['symbol' => $symbol]);
@@ -122,6 +136,38 @@ class MarketController extends Controller
             ];
         }
         return ['equities' => $data];
+    }
+
+    private function parseDseApiEquities(array $items): array
+    {
+        $out = [];
+        foreach ($items as $row) {
+            $company = $row['company'] ?? null;
+            $symbol = $company['symbol'] ?? null;
+            if (!$symbol) {
+                continue;
+            }
+            if (!isset($row['marketPrice'])) {
+                continue;
+            }
+            $price = (float) $row['marketPrice'];
+            if ($price <= 0) {
+                continue;
+            }
+            $change = isset($row['change']) ? (float) $row['change'] : 0.0;
+            $open = isset($row['openingPrice']) ? (float) $row['openingPrice'] : 0.0;
+            $changePct = 0.0;
+            if ($open > 0 && $change !== 0.0) {
+                $changePct = ($change / $open) * 100;
+            }
+            $out[] = [
+                'symbol' => strtoupper($symbol),
+                'price' => $price,
+                'change' => $change,
+                'change_pct' => $changePct,
+            ];
+        }
+        return $out;
     }
 
     private function parseVertexEquities(string $html): array
