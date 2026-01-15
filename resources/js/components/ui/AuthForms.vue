@@ -17,7 +17,14 @@
                     <input :type="showRegisterPasswordConfirm?'text':'password'" v-model="registerForm.password_confirmation" placeholder="Confirm Password" class="border px-3 py-2 w-full pr-10 rounded">
                     <button type="button" @click="showRegisterPasswordConfirm=!showRegisterPasswordConfirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">👁</button>
                 </div>
-                <button @click="$emit('register', { ...registerForm })" class="bg-black text-white px-3 py-2 rounded font-medium">Register</button>
+                <button
+                    @click="$emit('register', { ...registerForm })"
+                    :disabled="registerLoading"
+                    class="bg-black text-white px-3 py-2 rounded font-medium disabled:opacity-60"
+                >
+                    <span v-if="registerLoading">Registering...</span>
+                    <span v-else>Register</span>
+                </button>
             </div>
             <div v-if="registerErrors.length" class="text-base text-red-600 bg-red-50 p-2 rounded">
                 <div v-for="(err,i) in registerErrors" :key="i">{{ err }}</div>
@@ -36,7 +43,14 @@
                     <input :type="showLoginPassword?'text':'password'" v-model="loginForm.password" placeholder="Password" class="border px-3 py-2 w-full pr-10 rounded">
                     <button type="button" @click="showLoginPassword=!showLoginPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">👁</button>
                 </div>
-                <button @click="$emit('login', { ...loginForm })" class="bg-black text-white px-3 py-2 rounded font-medium">Login</button>
+                <button
+                    @click="$emit('login', { ...loginForm })"
+                    :disabled="loginLoading"
+                    class="bg-black text-white px-3 py-2 rounded font-medium disabled:opacity-60"
+                >
+                    <span v-if="loginLoading">Logging in...</span>
+                    <span v-else>Login</span>
+                </button>
             </div>
             <div v-if="loginMessage" class="text-base text-center text-red-600 bg-red-50 p-2 rounded">{{ loginMessage }}</div>
             <div class="text-center text-base">
@@ -52,7 +66,9 @@ defineProps({
     mode: { type: String, default: 'login' },
     registerErrors: { type: Array, default: () => [] },
     registerMessage: { type: String, default: '' },
-    loginMessage: { type: String, default: '' }
+    loginMessage: { type: String, default: '' },
+    registerLoading: { type: Boolean, default: false },
+    loginLoading: { type: Boolean, default: false }
 });
 const registerForm = reactive({ name: '', email: '', password: '', password_confirmation: '' });
 const loginForm = reactive({ email: '', password: '' });

@@ -13,7 +13,11 @@
         />
         <main class="p-6 space-y-10">
             <template v-if="currentPage === 'home'">
-                <MarketOverview :equities="equities" @refresh="refreshMarket" />
+                <MarketOverview
+                    :equities="equities"
+                    :refreshing="loadingRefreshMarket"
+                    @refresh="refreshMarket"
+                />
 
                 <Hero
                     v-if="!user && !showAuth"
@@ -27,6 +31,8 @@
                     :registerErrors="registerErrors"
                     :registerMessage="registerMessage"
                     :loginMessage="loginMessage"
+                    :registerLoading="loadingRegister"
+                    :loginLoading="loadingLogin"
                     @register="registerWith"
                     @login="loginWith"
                     @close="showAuth=null"
@@ -53,7 +59,14 @@
                             <div class="flex gap-2">
                                 <input v-model="stockForm.symbol" placeholder="Symbol e.g. CRDB" class="border px-2 py-2">
                                 <input v-model="stockForm.name" placeholder="Name (optional)" class="border px-2 py-2">
-                                <button @click="addStock" class="bg-black text-white px-3 py-2">Save</button>
+                                <button
+                                    @click="addStock"
+                                    :disabled="loadingAddStock"
+                                    class="bg-black text-white px-3 py-2 disabled:opacity-60"
+                                >
+                                    <span v-if="loadingAddStock">Saving...</span>
+                                    <span v-else>Save</span>
+                                </button>
                             </div>
                         </div>
                         <div class="space-y-3">
@@ -64,11 +77,24 @@
                                 <input v-model.number="lotForm.buy_price" type="number" placeholder="Buy Price" class="border px-2 py-2">
                                 <input v-model.number="lotForm.take_profit_pct" type="number" placeholder="Take Profit %" class="border px-2 py-2">
                                 <input v-model.number="lotForm.buy_more_pct" type="number" placeholder="Buy More %" class="border px-2 py-2">
-                                <button @click="addLot" class="bg-black text-white px-3 py-2">Save</button>
+                                <button
+                                    @click="addLot"
+                                    :disabled="loadingAddLot"
+                                    class="bg-black text-white px-3 py-2 disabled:opacity-60"
+                                >
+                                    <span v-if="loadingAddLot">Saving...</span>
+                                    <span v-else>Save</span>
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <LotsTable :lots="lots" @update-price="updatePrice" @check-alerts="checkAlerts" />
+                    <LotsTable
+                        :lots="lots"
+                        :updatingPrice="loadingUpdatePrice"
+                        :checkingAlerts="loadingCheckAlerts"
+                        @update-price="updatePrice"
+                        @check-alerts="checkAlerts"
+                    />
                 </section>
                 <section v-if="messages.length" class="space-y-1">
                     <div v-for="(m,i) in messages" :key="i" class="text-sm">{{ m }}</div>
@@ -84,6 +110,7 @@
                     :user="user"
                     :errors="contactErrors"
                     :message="contactMessage"
+                    :loading="loadingContact"
                     @submit="sendContact"
                     @registerClick="showAuth='register'; currentPage='home'"
                     @loginClick="showAuth='login'; currentPage='home'"
@@ -141,6 +168,14 @@
     const currentYear = new Date().getFullYear();
     const tzTime = ref('');
     const marketOpen = ref(false);
+    const loadingRegister = ref(false);
+    const loadingLogin = ref(false);
+    const loadingAddStock = ref(false);
+    const loadingAddLot = ref(false);
+    const loadingRefreshMarket = ref(false);
+    const loadingUpdatePrice = ref(false);
+    const loadingCheckAlerts = ref(false);
+    const loadingContact = ref(false);
 
     async function updateMarketStatus() {
         try {
@@ -203,6 +238,7 @@
     }
 
     async function registerWith(payload) {
+        loadingRegister.value = true;
         try {
             const res = await axios.post('/api/register', payload);
             user.value = res.data.user;
@@ -225,6 +261,8 @@
             } else {
                 registerMessage.value = 'Register failed';
             }
+        } finally {
+            loadingRegister.value = false;
         }
     }
 
@@ -244,6 +282,7 @@
     }
 
     async function loginWith(payload) {
+        loadingLogin.value = true;
         try {
             const res = await axios.post('/api/login', payload);
             user.value = res.data.user;
@@ -255,6 +294,8 @@
             } else {
                 loginMessage.value = 'Login failed';
             }
+        } finally {
+            loadingLogin.value = false;
         }
     }
 
@@ -267,21 +308,36 @@
     }
 
     async function addStock() {
-        const res = await axios.post('/api/stocks', stockForm);
-        messages.value.push('Stock saved '+res.data.symbol);
+        loadingAddStock.value = true;
+        try {
+            const res = await axios.post('/api/stocks', stockForm);
+            messages.value.push('Stock saved '+res.data.symbol);
+        } finally {
+            loadingAddStock.value = false;
+        }
     }
 
     async function addLot() {
-        await axios.post('/api/lots', lotForm);
-        messages.value.push('Lot saved');
-        await fetchLots();
+        loadingAddLot.value = true;
+        try {
+            await axios.post('/api/lots', lotForm);
+            messages.value.push('Lot saved');
+            await fetchLots();
+        } finally {
+            loadingAddLot.value = false;
+        }
     }
 
     async function updatePrice(payload) {
+        loadingUpdatePrice.value = true;
         const symbol = payload?.symbol ?? priceForm.symbol;
         const price = payload?.price ?? priceForm.price;
-        const res = await axios.post('/api/stocks/'+symbol+'/price', { price });
-        messages.value.push('Price updated '+res.data.symbol+' '+res.data.last_price);
+        try {
+            const res = await axios.post('/api/stocks/'+symbol+'/price', { price });
+            messages.value.push('Price updated '+res.data.symbol+' '+res.data.last_price);
+        } finally {
+            loadingUpdatePrice.value = false;
+        }
     }
 
     async function fetchLots() {
@@ -295,11 +351,17 @@
     }
 
     async function refreshMarket() {
-        await axios.post('/api/market/snapshot');
-        await fetchEquities();
+        loadingRefreshMarket.value = true;
+        try {
+            await axios.post('/api/market/snapshot');
+            await fetchEquities();
+        } finally {
+            loadingRefreshMarket.value = false;
+        }
     }
 
     async function sendContact(payload) {
+        loadingContact.value = true;
         contactErrors.value = [];
         contactMessage.value = '';
         try {
@@ -320,13 +382,20 @@
             } else {
                 contactMessage.value = 'Failed to send message';
             }
+        } finally {
+            loadingContact.value = false;
         }
     }
     async function checkAlerts() {
-        await axios.post('/api/market/snapshot');
-        const res = await axios.post('/api/alerts/check');
-        messages.value.push('Alerts '+res.data.notified.length);
-        await fetchLots();
+        loadingCheckAlerts.value = true;
+        try {
+            await axios.post('/api/market/snapshot');
+            const res = await axios.post('/api/alerts/check');
+            messages.value.push('Alerts '+res.data.notified.length);
+            await fetchLots();
+        } finally {
+            loadingCheckAlerts.value = false;
+        }
     }
 
     async function fetchMe() {

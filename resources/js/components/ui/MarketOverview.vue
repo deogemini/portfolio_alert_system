@@ -3,7 +3,14 @@
         <div class="flex items-center justify-between">
             <h2 class="text-xl font-medium">Market Overview</h2>
             <div class="flex gap-2">
-                <button @click="$emit('refresh')" class="border px-3 py-2">Refresh Market Data</button>
+                <button
+                    @click="$emit('refresh')"
+                    :disabled="refreshing"
+                    class="border px-3 py-2 disabled:opacity-60"
+                >
+                    <span v-if="refreshing">Refreshing...</span>
+                    <span v-else>Refresh Market Data</span>
+                </button>
             </div>
         </div>
         <div class="overflow-x-auto border rounded">
@@ -45,7 +52,8 @@
 
 <script setup>
 const props = defineProps({
-    equities: { type: Array, default: () => [] }
+    equities: { type: Array, default: () => [] },
+    refreshing: { type: Boolean, default: false }
 });
 function format(n) {
     return new Intl.NumberFormat().format(Number(n||0));

@@ -5,8 +5,22 @@
             <div class="flex gap-2">
                 <input v-model="priceForm.symbol" placeholder="Symbol" class="border px-2 py-2">
                 <input v-model.number="priceForm.price" type="number" placeholder="Price" class="border px-2 py-2">
-                <button @click="$emit('update-price', { ...priceForm })" class="border px-3 py-2">Update Price</button>
-                <button @click="$emit('check-alerts')" class="bg-black text-white px-3 py-2">Check Alerts</button>
+                <button
+                    @click="$emit('update-price', { ...priceForm })"
+                    :disabled="updatingPrice"
+                    class="border px-3 py-2 disabled:opacity-60"
+                >
+                    <span v-if="updatingPrice">Updating...</span>
+                    <span v-else>Update Price</span>
+                </button>
+                <button
+                    @click="$emit('check-alerts')"
+                    :disabled="checkingAlerts"
+                    class="bg-black text-white px-3 py-2 disabled:opacity-60"
+                >
+                    <span v-if="checkingAlerts">Checking...</span>
+                    <span v-else>Check Alerts</span>
+                </button>
             </div>
         </div>
         <div class="overflow-x-auto border rounded">
@@ -49,7 +63,9 @@
 <script setup>
 import { reactive } from 'vue';
 defineProps({
-    lots: { type: Array, default: () => [] }
+    lots: { type: Array, default: () => [] },
+    updatingPrice: { type: Boolean, default: false },
+    checkingAlerts: { type: Boolean, default: false }
 });
 const priceForm = reactive({ symbol: '', price: null });
 function format(n) {

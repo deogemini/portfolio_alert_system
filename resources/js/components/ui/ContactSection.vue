@@ -7,7 +7,14 @@
                 <input v-model="form.name" placeholder="Your Name" class="border px-2 py-2">
                 <input v-model="form.email" type="email" placeholder="Your Email" class="border px-2 py-2">
                 <textarea v-model="form.message" placeholder="Message" rows="4" class="border px-2 py-2"></textarea>
-                <button @click="$emit('submit', { ...form })" class="bg-black text-white px-3 py-2">Send Message</button>
+                <button
+                    @click="$emit('submit', { ...form })"
+                    :disabled="loading"
+                    class="bg-black text-white px-3 py-2 disabled:opacity-60"
+                >
+                    <span v-if="loading">Sending...</span>
+                    <span v-else>Send Message</span>
+                </button>
             </div>
             <div v-if="errors.length" class="text-base text-red-700">
                 <div v-for="(err,i) in errors" :key="i">{{ err }}</div>
@@ -30,7 +37,8 @@ import { reactive } from 'vue';
 defineProps({
     user: Object,
     errors: { type: Array, default: () => [] },
-    message: { type: String, default: '' }
+    message: { type: String, default: '' },
+    loading: { type: Boolean, default: false }
 });
 const form = reactive({ name: '', email: '', message: '' });
 </script>
