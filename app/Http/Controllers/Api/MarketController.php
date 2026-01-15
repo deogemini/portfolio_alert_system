@@ -47,26 +47,26 @@ class MarketController extends Controller
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            ])->timeout(10)->get('https://vertex.co.tz/');
+            ])->timeout(10)->get('https://dse.co.tz/market/data/overview');
             $html = $response->body();
-            $symbols = $this->parseVertexEquities($html);
+            $symbols = $this->parseDseEquities($html);
         } catch (\Throwable $e) {
-            Log::warning('Market snapshot vertex fetch failed', [
+            Log::warning('Market snapshot DSE fetch failed', [
                 'error' => $e->getMessage(),
             ]);
             $symbols = [];
         }
 
-        // Fallback to DSE overview if Vertex did not return anything
+        // Fallback to Vertex ticker if DSE did not return anything
         if (!count($symbols)) {
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                ])->timeout(10)->get('https://dse.co.tz/market/data/overview');
+                ])->timeout(10)->get('https://vertex.co.tz/');
                 $html = $response->body();
-                $symbols = $this->parseDseEquities($html);
+                $symbols = $this->parseVertexEquities($html);
             } catch (\Throwable $e) {
-                Log::error('Market snapshot DSE fetch failed', [
+                Log::error('Market snapshot vertex fetch failed', [
                     'error' => $e->getMessage(),
                 ]);
                 $symbols = [];
