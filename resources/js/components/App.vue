@@ -61,14 +61,6 @@
                 <section v-if="messages.length" class="space-y-1">
                     <div v-for="(m,i) in messages" :key="i" class="text-sm">{{ m }}</div>
                 </section>
-                <ContactSection
-                    :user="user"
-                    :errors="contactErrors"
-                    :message="contactMessage"
-                    @submit="sendContact"
-                    @registerClick="showAuth='register'"
-                    @loginClick="showAuth='login'"
-                />
             </template>
             <AboutSection
                 v-else-if="currentPage === 'about'"
