@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\LotController;
 use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MarketController;
+use App\Http\Controllers\Api\ContactController;
 
 Route::get('/', function () {
     return view('app');
@@ -29,4 +30,6 @@ Route::prefix('api')->group(function () {
     Route::get('market/status', [MarketController::class, 'status']);
     Route::post('market/snapshot', [MarketController::class, 'snapshot']);
     Route::get('market/equities', [MarketController::class, 'equities']);
+
+    Route::post('contact', [ContactController::class, 'send']);
 });

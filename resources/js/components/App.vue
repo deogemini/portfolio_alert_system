@@ -65,6 +65,30 @@
                     </div>
                 </div>
             </section>
+            <section class="grid md:grid-cols-2 gap-8 items-start">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-semibold">Contact Us</h2>
+                    <p class="text-sm">Reach eportsolutions.co.tz for support, onboarding, or inquiries.</p>
+                    <div class="grid grid-cols-1 gap-2">
+                        <input v-model="contactForm.name" placeholder="Your Name" class="border px-2 py-2">
+                        <input v-model="contactForm.email" type="email" placeholder="Your Email" class="border px-2 py-2">
+                        <textarea v-model="contactForm.message" placeholder="Message" rows="4" class="border px-2 py-2"></textarea>
+                        <button @click="sendContact" class="bg-black text-white px-3 py-2">Send Message</button>
+                    </div>
+                    <div v-if="contactErrors.length" class="text-sm text-red-700">
+                        <div v-for="(err,i) in contactErrors" :key="i">{{ err }}</div>
+                    </div>
+                    <div v-if="contactMessage" class="text-sm">{{ contactMessage }}</div>
+                </div>
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-semibold">Get Started</h2>
+                    <p class="text-sm">Register an account to manage your DSE portfolio alerts.</p>
+                    <div class="flex gap-3">
+                        <button @click="showAuth='register'" class="bg-black text-white px-4 py-2">Register</button>
+                        <button @click="showAuth='login'" class="border px-4 py-2">Login</button>
+                    </div>
+                </div>
+            </section>
             <section v-if="!user" class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="space-y-4">
                     <h1 class="text-3xl font-semibold">Track DSE holdings and receive smart alerts</h1>
@@ -224,6 +248,9 @@
     const priceForm = reactive({ symbol: '', price: null });
     const lots = ref([]);
     const equities = ref([]);
+    const contactForm = reactive({ name: '', email: '', message: '' });
+    const contactErrors = ref([]);
+    const contactMessage = ref('');
     const messages = ref([]);
     const user = ref(null);
     const registerErrors = ref([]);
@@ -344,6 +371,29 @@
     async function refreshMarket() {
         await axios.post('/api/market/snapshot');
         await fetchEquities();
+    }
+
+    async function sendContact() {
+        contactErrors.value = [];
+        contactMessage.value = '';
+        try {
+            await axios.post('/api/contact', contactForm);
+            contactMessage.value = 'Message sent. We will get back to you soon.';
+            contactForm.name = '';
+            contactForm.email = '';
+            contactForm.message = '';
+        } catch (e) {
+            if (e?.response?.data?.errors) {
+                const errs = e.response.data.errors;
+                Object.keys(errs).forEach(k => {
+                    errs[k].forEach(msg => contactErrors.value.push(msg));
+                });
+            } else if (e?.response?.data?.message) {
+                contactMessage.value = e.response.data.message;
+            } else {
+                contactMessage.value = 'Failed to send message';
+            }
+        }
     }
     async function checkAlerts() {
         const res = await axios.post('/api/alerts/check');
