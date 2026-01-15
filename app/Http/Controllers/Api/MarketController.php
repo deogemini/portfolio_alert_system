@@ -29,8 +29,8 @@ class MarketController extends Controller
 
         $weekday = $eatNow->format('D');
         $isWeekday = in_array($weekday, ['Mon','Tue','Wed','Thu','Fri'], true);
-        $openTime = $eatNow->copy()->setTime(10, 0, 0);
-        $closeTime = $eatNow->copy()->setTime(14, 0, 0);
+        $openTime = $eatNow->copy()->setTime(9, 31, 0);
+        $closeTime = $eatNow->copy()->setTime(16, 0, 0);
         $open = $isWeekday && $eatNow->between($openTime, $closeTime);
 
         return [
